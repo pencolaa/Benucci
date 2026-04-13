@@ -1,23 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ProfileDetailScreen, { BulletRow, SectionCard } from '../components/profile-detail-screen';
-
-const orders = [
-  {
-    id: '#BN-2031',
-    date: '08/04/2026',
-    status: 'Entregue',
-    total: 'R$459,00',
-    items: ['Quadro Abstrato', 'Kit Almofadas Linho'],
-  },
-  {
-    id: '#BN-1987',
-    date: '01/04/2026',
-    status: 'Em separacao',
-    total: 'R$219,00',
-    items: ['Vaso Escultural Branco'],
-  },
-];
+import { useOrders } from '../context/orders-context';
 
 function StatusBadge({ status }) {
   const isDelivered = status === 'Entregue';
@@ -32,6 +16,10 @@ function StatusBadge({ status }) {
 }
 
 export default function HistoricoScreen() {
+  const { orders } = useOrders();
+  const deliveredCount = orders.filter((order) => order.status === 'Entregue').length;
+  const activeCount = orders.filter((order) => order.status !== 'Entregue').length;
+
   return (
     <ProfileDetailScreen
       headerLabel="Perfil"
@@ -39,9 +27,9 @@ export default function HistoricoScreen() {
       subtitle="Acompanhe pedidos recentes e confira rapidamente o que ja passou pela sua conta.">
       {orders.map((order) => (
         <SectionCard
-          key={order.id}
+          key={order.code}
           icon="shopping-bag"
-          title={order.id}
+          title={order.code}
           description={`${order.date}  •  Total ${order.total}`}
           rightContent={<StatusBadge status={order.status} />}>
           {order.items.map((item) => (
@@ -57,17 +45,17 @@ export default function HistoricoScreen() {
         <View style={styles.summaryRow}>
           <View style={styles.summaryBox}>
             <Feather name="package" size={18} color="#52bdd7" />
-            <Text style={styles.summaryNumber}>2</Text>
+            <Text style={styles.summaryNumber}>{orders.length}</Text>
             <Text style={styles.summaryLabel}>Pedidos</Text>
           </View>
           <View style={styles.summaryBox}>
             <Feather name="check-circle" size={18} color="#52bdd7" />
-            <Text style={styles.summaryNumber}>1</Text>
+            <Text style={styles.summaryNumber}>{deliveredCount}</Text>
             <Text style={styles.summaryLabel}>Entregue</Text>
           </View>
           <View style={styles.summaryBox}>
             <Feather name="truck" size={18} color="#52bdd7" />
-            <Text style={styles.summaryNumber}>1</Text>
+            <Text style={styles.summaryNumber}>{activeCount}</Text>
             <Text style={styles.summaryLabel}>Ativo</Text>
           </View>
         </View>

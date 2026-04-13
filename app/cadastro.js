@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useAuth } from '../context/auth-context';
 
 function WaveCluster({ position }) {
   const isTop = position === 'top';
@@ -18,23 +20,36 @@ function WaveCluster({ position }) {
   );
 }
 
-function InputRow({ placeholder, value, secureTextEntry, valid }) {
-  return (
-    <View style={styles.inputWrap}>
-      <TextInput
-        placeholder={placeholder}
-        placeholderTextColor="#73777f"
-        secureTextEntry={secureTextEntry}
-        defaultValue={value}
-        style={styles.input}
-      />
-      <Feather name={valid ? 'check' : 'eye-off'} size={18} color={valid ? '#54b97b' : '#343434'} />
-    </View>
-  );
-}
-
 export default function CadastroScreen() {
+  const router = useRouter();
+  const { register } = useAuth();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [form, setForm] = useState({
+    userName: 'Erinaldo',
+    email: 'erinadpereira934@gmail.com',
+    password: '123456789',
+  });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleRegister() {
+    if (!acceptedTerms) {
+      setError('Aceite os termos de servico para continuar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await register(form);
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setError('');
+    router.replace('/dashboard');
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -51,9 +66,39 @@ export default function CadastroScreen() {
             resizeMode="contain"
           />
 
-          <InputRow placeholder="Nome" value="Erinaldo" valid />
-          <InputRow placeholder="Email" value="erinadpereira934@gmail.com" valid />
-          <InputRow placeholder="Senha" value="123456789" secureTextEntry valid={false} />
+          <View style={styles.inputWrap}>
+            <TextInput
+              placeholder="Nome"
+              placeholderTextColor="#73777f"
+              value={form.userName}
+              onChangeText={(value) => setForm((current) => ({ ...current, userName: value }))}
+              style={styles.input}
+            />
+            <Feather name={form.userName.trim() ? 'check' : 'eye-off'} size={18} color={form.userName.trim() ? '#54b97b' : '#343434'} />
+          </View>
+          <View style={styles.inputWrap}>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#73777f"
+              value={form.email}
+              onChangeText={(value) => setForm((current) => ({ ...current, email: value }))}
+              style={styles.input}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Feather name={form.email.includes('@') ? 'check' : 'eye-off'} size={18} color={form.email.includes('@') ? '#54b97b' : '#343434'} />
+          </View>
+          <View style={styles.inputWrap}>
+            <TextInput
+              placeholder="Senha"
+              placeholderTextColor="#73777f"
+              value={form.password}
+              onChangeText={(value) => setForm((current) => ({ ...current, password: value }))}
+              secureTextEntry
+              style={styles.input}
+            />
+            <Feather name={form.password.length >= 4 ? 'check' : 'eye-off'} size={18} color={form.password.length >= 4 ? '#54b97b' : '#343434'} />
+          </View>
 
           <View style={styles.termsRow}>
             <Text style={styles.termsText}>
@@ -69,8 +114,10 @@ export default function CadastroScreen() {
             </Pressable>
           </View>
 
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>Cadastrar</Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <Pressable style={styles.button} onPress={handleRegister} disabled={isSubmitting}>
+            <Text style={styles.buttonText}>{isSubmitting ? 'Cadastrando...' : 'Cadastrar'}</Text>
           </Pressable>
         </View>
       </View>
@@ -158,6 +205,12 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 18,
     fontWeight: '700',
+  },
+  errorText: {
+    color: '#c13e54',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   waveWrap: {
     position: 'absolute',

@@ -3,25 +3,10 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-
-const initialAddresses = [
-  {
-    id: 'home',
-    title: 'Casa',
-    subtitle: 'Rua Marcilio Dias, 260 - Canto do Forte',
-    icon: 'home',
-  },
-  {
-    id: 'saved',
-    title: 'R. Marcilio Dias',
-    subtitle: 'Canto do Forte, Praia Grande - SP',
-    icon: 'map-pin',
-  },
-];
+import { useAddresses } from '../context/addresses-context';
 
 function AddressCard({
   item,
-  isSelected,
   isEditing,
   editTitle,
   editSubtitle,
@@ -34,11 +19,9 @@ function AddressCard({
   onChangeSubtitle,
 }) {
   return (
-    <Pressable
-      style={[styles.addressCard, isSelected && styles.addressCardSelected]}
-      onPress={onSelect}>
+    <Pressable style={[styles.addressCard, item.isSelected && styles.addressCardSelected]} onPress={onSelect}>
       <View style={styles.addressTopRow}>
-        <View style={[styles.addressIconWrap, isSelected && styles.addressIconWrapSelected]}>
+        <View style={[styles.addressIconWrap, item.isSelected && styles.addressIconWrapSelected]}>
           <Feather name={item.icon} size={18} color="#52bdd7" />
         </View>
 
@@ -93,9 +76,8 @@ function AddressCard({
 
 export default function EnderecoScreen() {
   const router = useRouter();
+  const { addresses, addAddress, updateAddress, deleteAddress, selectAddress } = useAddresses();
   const [searchQuery, setSearchQuery] = useState('');
-  const [addresses, setAddresses] = useState(initialAddresses);
-  const [selectedAddressId, setSelectedAddressId] = useState(initialAddresses[0].id);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftSubtitle, setDraftSubtitle] = useState('');
@@ -109,12 +91,11 @@ export default function EnderecoScreen() {
       return addresses;
     }
 
-    return addresses.filter((item) => {
-      return (
+    return addresses.filter(
+      (item) =>
         item.title.toLowerCase().includes(normalizedQuery) ||
         item.subtitle.toLowerCase().includes(normalizedQuery)
-      );
-    });
+    );
   }, [addresses, searchQuery]);
 
   function startEditing(item) {
@@ -123,47 +104,22 @@ export default function EnderecoScreen() {
     setDraftSubtitle(item.subtitle);
   }
 
-  function saveEditing(itemId) {
-    const nextTitle = draftTitle.trim();
-    const nextSubtitle = draftSubtitle.trim();
+  async function saveEditing(item) {
+    const result = await updateAddress(item.id, {
+      title: draftTitle,
+      subtitle: draftSubtitle,
+      icon: item.icon,
+      isSelected: item.isSelected,
+    });
 
-    if (!nextTitle || !nextSubtitle) {
-      Alert.alert('Campos obrigatorios', 'Preencha o nome e o endereco antes de salvar.');
+    if (!result.ok) {
+      Alert.alert('Campos obrigatorios', result.error);
       return;
     }
 
-    setAddresses((currentAddresses) =>
-      currentAddresses.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              title: nextTitle,
-              subtitle: nextSubtitle,
-            }
-          : item
-      )
-    );
     setEditingAddressId(null);
     setDraftTitle('');
     setDraftSubtitle('');
-  }
-
-  function deleteAddress(itemId) {
-    setAddresses((currentAddresses) => {
-      const nextAddresses = currentAddresses.filter((item) => item.id !== itemId);
-
-      if (selectedAddressId === itemId && nextAddresses.length > 0) {
-        setSelectedAddressId(nextAddresses[0].id);
-      }
-
-      return nextAddresses;
-    });
-
-    if (editingAddressId === itemId) {
-      setEditingAddressId(null);
-      setDraftTitle('');
-      setDraftSubtitle('');
-    }
   }
 
   async function applyCurrentLocation() {
@@ -192,28 +148,21 @@ export default function EnderecoScreen() {
       const regionLine = [place?.district, place?.city, place?.region].filter(Boolean).join(' - ');
       const formattedAddress = [streetLine, regionLine].filter(Boolean).join(' - ');
       const nextSubtitle =
-        formattedAddress || `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}`;
+        formattedAddress ||
+        `${currentPosition.coords.latitude.toFixed(5)}, ${currentPosition.coords.longitude.toFixed(5)}`;
 
       setCurrentLocationLabel(nextSubtitle);
 
-      setAddresses((currentAddresses) => {
-        const locationAddress = {
-          id: 'current-location',
-          title: 'Local atual',
-          subtitle: nextSubtitle,
-          icon: 'crosshair',
-        };
-
-        const alreadyExists = currentAddresses.some((item) => item.id === locationAddress.id);
-
-        if (alreadyExists) {
-          return currentAddresses.map((item) => (item.id === locationAddress.id ? locationAddress : item));
-        }
-
-        return [locationAddress, ...currentAddresses];
+      const result = await addAddress({
+        title: 'Local atual',
+        subtitle: nextSubtitle,
+        icon: 'crosshair',
+        isSelected: true,
       });
 
-      setSelectedAddressId('current-location');
+      if (!result.ok) {
+        Alert.alert('Erro ao salvar localizacao', result.error);
+      }
     } catch (_error) {
       setCurrentLocationLabel('Nao foi possivel obter sua localizacao');
       Alert.alert('Erro ao buscar localizacao', 'Nao foi possivel localizar o aparelho neste momento.');
@@ -264,18 +213,17 @@ export default function EnderecoScreen() {
                 <AddressCard
                   key={item.id}
                   item={item}
-                  isSelected={selectedAddressId === item.id}
                   isEditing={editingAddressId === item.id}
                   editTitle={draftTitle}
                   editSubtitle={draftSubtitle}
-                  onSelect={() => setSelectedAddressId(item.id)}
+                  onSelect={() => selectAddress(item.id)}
                   onStartEdit={() => startEditing(item)}
                   onCancelEdit={() => {
                     setEditingAddressId(null);
                     setDraftTitle('');
                     setDraftSubtitle('');
                   }}
-                  onSaveEdit={() => saveEditing(item.id)}
+                  onSaveEdit={() => saveEditing(item)}
                   onDelete={() => deleteAddress(item.id)}
                   onChangeTitle={setDraftTitle}
                   onChangeSubtitle={setDraftSubtitle}
@@ -286,7 +234,7 @@ export default function EnderecoScreen() {
             {filteredAddresses.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyTitle}>Nenhum endereco encontrado</Text>
-                <Text style={styles.emptyText}>Tente outro termo de busca para localizar seus enderecos.</Text>
+                <Text style={styles.emptyText}>Use sua localizacao ou ajuste a busca para localizar seus enderecos.</Text>
               </View>
             ) : null}
           </ScrollView>

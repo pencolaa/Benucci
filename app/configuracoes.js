@@ -53,8 +53,8 @@ export default function ConfiguracoesScreen() {
     });
   }, [email, password, userName]);
 
-  function handleSaveProfile() {
-    const result = updateProfile(form);
+  async function handleSaveProfile() {
+    const result = await updateProfile(form);
 
     if (!result.ok) {
       Alert.alert('Nao foi possivel atualizar', result.error);

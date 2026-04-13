@@ -1,30 +1,63 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useInventory } from './inventory-context';
+import { useAuth } from './auth-context';
+import { api } from '../lib/api';
 
 const FavoritesContext = createContext(null);
 
-const initialFavorites = ['mandala', 'gato', 'porta-chaves', 'chaveiro'];
-
 export function FavoritesProvider({ children }) {
-  const [favoriteIds, setFavoriteIds] = useState(initialFavorites);
-  const { products } = useInventory();
+  const { id: userId, isAuthenticated } = useAuth();
+  const [favoriteIds, setFavoriteIds] = useState([]);
 
   useEffect(() => {
-    setFavoriteIds((current) =>
-      current.filter((id) => products.some((product) => product.id === id))
-    );
-  }, [products]);
+    let active = true;
 
-  const toggleFavorite = (productId) => {
-    setFavoriteIds((current) =>
-      current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId]
-    );
+    if (!isAuthenticated || !userId) {
+      setFavoriteIds([]);
+      return undefined;
+    }
+
+    api
+      .getFavorites(userId)
+      .then((data) => {
+        if (active) {
+          setFavoriteIds(data.favoriteIds);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, userId]);
+
+  const toggleFavorite = async (productId) => {
+    if (!userId) {
+      return;
+    }
+
+    const nextIds = favoriteIds.includes(productId)
+      ? favoriteIds.filter((id) => id !== productId)
+      : [...favoriteIds, productId];
+
+    setFavoriteIds(nextIds);
+
+    try {
+      const data = await api.toggleFavorite(userId, productId);
+      setFavoriteIds(data.favoriteIds);
+    } catch (_) {}
   };
 
-  const removeFavorite = (productId) => {
+  const removeFavorite = async (productId) => {
+    if (!userId) {
+      return;
+    }
+
     setFavoriteIds((current) => current.filter((id) => id !== productId));
+
+    try {
+      const data = await api.removeFavorite(userId, productId);
+      setFavoriteIds(data.favoriteIds);
+    } catch (_) {}
   };
 
   const value = useMemo(

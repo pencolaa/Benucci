@@ -97,21 +97,25 @@ export default function AdminScreen() {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name.trim() || !form.price.trim()) {
       Alert.alert('Campos obrigatorios', 'Preencha pelo menos nome e valor do item.');
       return;
     }
 
-    if (selectedProduct) {
-      updateProduct(selectedProduct.id, form);
-      Alert.alert('Produto atualizado', 'As informacoes do item foram atualizadas.');
-    } else {
-      addProduct(form);
-      Alert.alert('Produto adicionado', 'O novo item entrou no estoque.');
-    }
+    try {
+      if (selectedProduct) {
+        await updateProduct(selectedProduct.id, form);
+        Alert.alert('Produto atualizado', 'As informacoes do item foram atualizadas.');
+      } else {
+        await addProduct(form);
+        Alert.alert('Produto adicionado', 'O novo item entrou no estoque.');
+      }
 
-    resetForm();
+      resetForm();
+    } catch (error) {
+      Alert.alert('Nao foi possivel salvar', error.message);
+    }
   };
 
   const handleRemove = (productId) => {
@@ -121,7 +125,7 @@ export default function AdminScreen() {
         text: 'Remover',
         style: 'destructive',
         onPress: () => {
-          removeProduct(productId);
+            removeProduct(productId).catch(() => {});
 
           if (selectedId === productId) {
             resetForm();

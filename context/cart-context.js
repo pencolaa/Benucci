@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth } from './auth-context';
 import { useInventory } from './inventory-context';
+import { api } from '../lib/api';
 
 const CartContext = createContext(null);
 
@@ -7,63 +9,83 @@ function parsePrice(price) {
   return Number(String(price).replace('R$', '').replace(',', '.'));
 }
 
-const initialCartItems = [
-  {
-    productId: 'mandala',
-    quantity: 1,
-    selected: true,
-  },
-  {
-    productId: 'chaveiro',
-    quantity: 1,
-    selected: true,
-  },
-  {
-    productId: 'porta-chaves',
-    quantity: 1,
-    selected: false,
-  },
-];
-
 export function CartProvider({ children }) {
-  const [items, setItems] = useState(initialCartItems);
-  const { getProductById, products } = useInventory();
+  const { id: userId, isAuthenticated } = useAuth();
+  const { getProductById } = useInventory();
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
-    setItems((current) =>
-      current.filter((item) => products.some((product) => product.id === item.productId))
-    );
-  }, [products]);
+    let active = true;
 
-  const addItem = (productId, quantity = 1) => {
+    if (!isAuthenticated || !userId) {
+      setItems([]);
+      return undefined;
+    }
+
+    api
+      .getCart(userId)
+      .then((data) => {
+        if (active) {
+          setItems(data.items);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, userId]);
+
+  const addItem = async (productId, quantity = 1) => {
+    if (!userId) {
+      return;
+    }
+
     setItems((current) => {
       const existing = current.find((item) => item.productId === productId);
 
       if (existing) {
         return current.map((item) =>
           item.productId === productId
-            ? {
-                ...item,
-                quantity: item.quantity + quantity,
-                selected: true,
-              }
+            ? { ...item, quantity: item.quantity + quantity, selected: true }
             : item
         );
       }
 
       return [...current, { productId, quantity, selected: true }];
     });
+
+    try {
+      const data = await api.addCartItem(userId, { productId, quantity });
+      setItems(data.items);
+    } catch (_) {}
   };
 
-  const toggleSelected = (productId) => {
+  const toggleSelected = async (productId) => {
+    const currentItem = items.find((item) => item.productId === productId);
+
+    if (!userId || !currentItem) {
+      return;
+    }
+
+    const nextSelected = !currentItem.selected;
     setItems((current) =>
       current.map((item) =>
-        item.productId === productId ? { ...item, selected: !item.selected } : item
+        item.productId === productId ? { ...item, selected: nextSelected } : item
       )
     );
+
+    try {
+      const data = await api.updateCartItem(userId, productId, { selected: nextSelected });
+      setItems(data.items);
+    } catch (_) {}
   };
 
-  const updateQuantity = (productId, nextQuantity) => {
+  const updateQuantity = async (productId, nextQuantity) => {
+    if (!userId) {
+      return;
+    }
+
     setItems((current) =>
       current
         .map((item) =>
@@ -73,6 +95,15 @@ export function CartProvider({ children }) {
         )
         .filter((item) => item.quantity > 0)
     );
+
+    try {
+      const data = await api.updateCartItem(userId, productId, { quantity: nextQuantity });
+      setItems(data.items);
+    } catch (_) {}
+  };
+
+  const replaceItems = (nextItems) => {
+    setItems(nextItems);
   };
 
   const value = useMemo(() => {
@@ -80,7 +111,7 @@ export function CartProvider({ children }) {
     const selectedCount = selectedItems.reduce((total, item) => total + item.quantity, 0);
     const totalPrice = selectedItems.reduce((total, item) => {
       const product = getProductById(item.productId);
-      return total + parsePrice(product.price) * item.quantity;
+      return product ? total + parsePrice(product.price) * item.quantity : total;
     }, 0);
 
     return {
@@ -88,10 +119,11 @@ export function CartProvider({ children }) {
       addItem,
       toggleSelected,
       updateQuantity,
+      replaceItems,
       selectedCount,
       totalPrice,
     };
-  }, [items]);
+  }, [getProductById, items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

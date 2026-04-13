@@ -1,60 +1,48 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import {
-  formatPriceValue,
-  initialProducts,
-  normalizeListInput,
-  slugifyProductName,
-} from '../constants/products';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { initialProducts } from '../constants/products';
+import { api } from '../lib/api';
 
 const InventoryContext = createContext(null);
-
-function sanitizeProduct(payload, currentId) {
-  const stockValue = Number(payload.stock);
-  const name = String(payload.name).trim();
-
-  return {
-    id: currentId || slugifyProductName(name) || `item-${Date.now()}`,
-    name,
-    price: formatPriceValue(payload.price),
-    accent: String(payload.accent).trim() || '#2f82c5',
-    shape: String(payload.shape).trim() || 'circle',
-    category: String(payload.category).trim() || 'Imagem',
-    description: String(payload.description).trim(),
-    sizes: Array.isArray(payload.sizes)
-      ? payload.sizes.filter(Boolean)
-      : normalizeListInput(String(payload.sizes)),
-    colors: Array.isArray(payload.colors)
-      ? payload.colors.filter(Boolean)
-      : normalizeListInput(String(payload.colors)),
-    stock: Number.isFinite(stockValue) ? Math.max(0, stockValue) : 0,
-  };
-}
 
 export function InventoryProvider({ children }) {
   const [products, setProducts] = useState(initialProducts);
 
-  const addProduct = (payload) => {
-    const product = sanitizeProduct(payload);
+  useEffect(() => {
+    let active = true;
 
-    setProducts((current) => {
-      const nextId = current.some((item) => item.id === product.id)
-        ? `${product.id}-${current.length + 1}`
-        : product.id;
+    api
+      .getProducts()
+      .then((data) => {
+        if (active) {
+          setProducts(data.products);
+        }
+      })
+      .catch(() => {});
 
-      return [...current, { ...product, id: nextId }];
-    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const addProduct = async (payload) => {
+    const data = await api.addProduct(payload);
+    setProducts((current) => [data.product, ...current]);
   };
 
-  const updateProduct = (productId, payload) => {
+  const updateProduct = async (productId, payload) => {
+    const data = await api.updateProduct(productId, payload);
     setProducts((current) =>
-      current.map((item) =>
-        item.id === productId ? sanitizeProduct(payload, productId) : item
-      )
+      current.map((item) => (item.id === productId ? data.product : item))
     );
   };
 
-  const removeProduct = (productId) => {
+  const removeProduct = async (productId) => {
+    await api.removeProduct(productId);
     setProducts((current) => current.filter((item) => item.id !== productId));
+  };
+
+  const setProductsFromCheckout = (nextProducts) => {
+    setProducts(nextProducts);
   };
 
   const getProductById = (productId) =>
@@ -67,6 +55,7 @@ export function InventoryProvider({ children }) {
       updateProduct,
       removeProduct,
       getProductById,
+      setProductsFromCheckout,
     }),
     [products]
   );

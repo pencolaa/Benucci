@@ -26,9 +26,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = () => {
-    const result = login({ email, password });
+  const handleLogin = async () => {
+    setIsSubmitting(true);
+    const result = await login({ email, password });
+    setIsSubmitting(false);
 
     if (!result.ok) {
       setError(result.error);
@@ -83,8 +86,8 @@ export default function LoginScreen() {
             <Text style={styles.forgotText}>Esqueceu a senha?</Text>
           </Pressable>
 
-          <Pressable style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Logar</Text>
+          <Pressable style={styles.button} onPress={handleLogin} disabled={isSubmitting}>
+            <Text style={styles.buttonText}>{isSubmitting ? 'Entrando...' : 'Logar'}</Text>
           </Pressable>
 
           <Text style={styles.signupText}>

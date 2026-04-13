@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth } from './auth-context';
+import { api } from '../lib/api';
 
 const PreferencesContext = createContext(null);
 
@@ -55,22 +57,62 @@ const themePalettes = {
   },
 };
 
+const defaultPreferences = {
+  themeMode: 'light',
+  soundEnabled: true,
+  biometricEnabled: false,
+  orderUpdates: true,
+  offersEnabled: true,
+  restockEnabled: false,
+};
+
 export function PreferencesProvider({ children }) {
-  const [preferences, setPreferences] = useState({
-    themeMode: 'light',
-    soundEnabled: true,
-    biometricEnabled: false,
-    orderUpdates: true,
-    offersEnabled: true,
-    restockEnabled: false,
-  });
+  const { id: userId, isAuthenticated } = useAuth();
+  const [preferences, setPreferences] = useState(defaultPreferences);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!isAuthenticated || !userId) {
+      setPreferences(defaultPreferences);
+      return undefined;
+    }
+
+    api
+      .getPreferences(userId)
+      .then((data) => {
+        if (active) {
+          setPreferences(data.preferences);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, userId]);
+
+  const persist = async (nextPreferences) => {
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const data = await api.updatePreferences(userId, nextPreferences);
+      setPreferences(data.preferences);
+    } catch (_) {}
+  };
 
   const setThemeMode = (themeMode) => {
-    setPreferences((current) => ({ ...current, themeMode }));
+    const next = { ...preferences, themeMode };
+    setPreferences(next);
+    persist({ themeMode });
   };
 
   const updatePreference = (key, value) => {
-    setPreferences((current) => ({ ...current, [key]: value }));
+    const next = { ...preferences, [key]: value };
+    setPreferences(next);
+    persist({ [key]: value });
   };
 
   const value = useMemo(

@@ -1,11 +1,15 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AppBottomNav from '../components/app-bottom-nav';
 import ProductArtwork from '../components/product-artwork';
+import { useAddresses } from '../context/addresses-context';
 import { useCart } from '../context/cart-context';
 import { useInventory } from '../context/inventory-context';
+import { useOrders } from '../context/orders-context';
+import { useAuth } from '../context/auth-context';
+import { api } from '../lib/api';
 
 function CartRow({ item, product, onToggle, onDecrease, onIncrease }) {
   return (
@@ -45,8 +49,11 @@ function CartRow({ item, product, onToggle, onDecrease, onIncrease }) {
 
 export default function CarrinhoScreen() {
   const router = useRouter();
-  const { items, toggleSelected, updateQuantity, selectedCount, totalPrice } = useCart();
-  const { products } = useInventory();
+  const { id: userId } = useAuth();
+  const { items, toggleSelected, updateQuantity, replaceItems, selectedCount, totalPrice } = useCart();
+  const { products, setProductsFromCheckout } = useInventory();
+  const { selectedAddress } = useAddresses();
+  const { replaceOrders } = useOrders();
 
   const cartProducts = useMemo(
     () =>
@@ -58,6 +65,29 @@ export default function CarrinhoScreen() {
         .filter((entry) => entry.product),
     [items, products]
   );
+
+  async function handleCheckout() {
+    if (!userId) {
+      Alert.alert('Login necessario', 'Entre na sua conta para concluir a compra.');
+      return;
+    }
+
+    if (!selectedAddress) {
+      Alert.alert('Endereco necessario', 'Escolha um endereco de entrega antes de continuar.');
+      return;
+    }
+
+    try {
+      const data = await api.checkout(userId, selectedAddress.id);
+      replaceItems(data.cart.items);
+      replaceOrders(data.orders);
+      setProductsFromCheckout(data.products);
+      Alert.alert('Pedido criado', `Seu pedido ${data.order.code} foi enviado para separacao.`);
+      router.push('/historico');
+    } catch (error) {
+      Alert.alert('Nao foi possivel concluir', error.message);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -88,13 +118,15 @@ export default function CarrinhoScreen() {
             <View style={styles.addressRow}>
               <Pressable style={styles.addressButton} onPress={() => router.push('/endereco')}>
                 <Feather name="map-pin" size={14} color="#2c2c2c" />
-                <Text style={styles.addressText}>Endereco</Text>
+                <Text style={styles.addressText}>
+                  {selectedAddress ? selectedAddress.title : 'Endereco'}
+                </Text>
               </Pressable>
             </View>
 
             <View style={styles.summaryRow}>
               <Text style={styles.summaryText}>Total de itens: {selectedCount}</Text>
-              <Pressable style={styles.checkoutButton}>
+              <Pressable style={styles.checkoutButton} onPress={handleCheckout}>
                 <Text style={styles.checkoutText}>
                   Continuar compra
                   {selectedCount > 0 ? ` - R$${totalPrice.toFixed(0)}` : ''}

@@ -7,8 +7,19 @@ import { AuthProvider } from '../context/auth-context';
 import { CartProvider } from '../context/cart-context';
 import { FavoritesProvider } from '../context/favorites-context';
 import { InventoryProvider } from '../context/inventory-context';
+import { PreferencesProvider, usePreferences } from '../context/preferences-context';
 
 export default function RootLayout() {
+  return (
+    <PreferencesProvider>
+      <AppProviders />
+    </PreferencesProvider>
+  );
+}
+
+function AppProviders() {
+  const { theme } = usePreferences();
+
   useEffect(() => {
     if (Platform.OS !== 'android') {
       return;
@@ -16,10 +27,10 @@ export default function RootLayout() {
 
     NavigationBar.setPositionAsync('absolute');
     NavigationBar.setBackgroundColorAsync('#00000000');
-    NavigationBar.setButtonStyleAsync('light');
+    NavigationBar.setButtonStyleAsync(theme.mode === 'dark' ? 'light' : 'dark');
     NavigationBar.setBehaviorAsync('overlay-swipe');
     NavigationBar.setVisibilityAsync('hidden');
-  }, []);
+  }, [theme.mode]);
 
   return (
     <AuthProvider>
@@ -27,7 +38,7 @@ export default function RootLayout() {
         <FavoritesProvider>
           <CartProvider>
             <>
-              <StatusBar hidden />
+              <StatusBar hidden={false} style={theme.mode === 'dark' ? 'light' : 'dark'} />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="home" />
@@ -39,6 +50,11 @@ export default function RootLayout() {
                 <Stack.Screen name="endereco" />
                 <Stack.Screen name="perfil" />
                 <Stack.Screen name="favoritos" />
+                <Stack.Screen name="configuracoes" />
+                <Stack.Screen name="notificacoes" />
+                <Stack.Screen name="historico" />
+                <Stack.Screen name="privacidade" />
+                <Stack.Screen name="termos" />
                 <Stack.Screen name="admin" />
               </Stack>
             </>

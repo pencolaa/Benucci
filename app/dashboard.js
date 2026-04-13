@@ -15,26 +15,33 @@ import ProductArtwork from '../components/product-artwork';
 import { parsePriceValue } from '../constants/products';
 import { useAuth } from '../context/auth-context';
 import { useInventory } from '../context/inventory-context';
+import { usePreferences } from '../context/preferences-context';
 
 function SearchBar({ value, onChangeText, onReset, hasActiveFilters }) {
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.searchBar}>
-      <Feather name="search" size={18} color="#9ca7b4" />
+      <Feather name="search" size={18} color={theme.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder="Procure aqui"
-        placeholderTextColor="#b0b7c2"
+        placeholderTextColor={theme.textMuted}
         style={styles.searchInput}
       />
       <Pressable onPress={onReset} hitSlop={8}>
-        <Feather name={hasActiveFilters ? 'x-circle' : 'sliders'} size={18} color="#9ca7b4" />
+        <Feather name={hasActiveFilters ? 'x-circle' : 'sliders'} size={18} color={theme.textMuted} />
       </Pressable>
     </View>
   );
 }
 
 function CategoryPill({ label, active, onPress }) {
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
+
   return (
     <Pressable style={[styles.categoryPill, active && styles.categoryPillActive]} onPress={onPress}>
       <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{label}</Text>
@@ -43,6 +50,9 @@ function CategoryPill({ label, active, onPress }) {
 }
 
 function ProductCard({ item, onPress }) {
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
+
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.artworkWrap}>
@@ -58,6 +68,8 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { products } = useInventory();
   const { userName, isAdmin } = useAuth();
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tudo');
   const [sortMode, setSortMode] = useState('default');
@@ -116,14 +128,14 @@ export default function DashboardScreen() {
             <View style={styles.topRow}>
               <View style={styles.userBlock}>
                 <View style={styles.avatar}>
-                  <Feather name="user" size={22} color="#ffffff" />
+                  <Feather name="user" size={22} color={theme.white} />
                 </View>
 
                 <View>
                   <Text style={styles.welcomeText}>Bem-vindo(a)!</Text>
                   <Text style={styles.userName}>{userName || 'Cliente'}</Text>
                   <View style={styles.locationRow}>
-                    <Feather name="map-pin" size={11} color="#c9d1da" />
+                    <Feather name="map-pin" size={11} color={theme.textMuted} />
                     <Text style={styles.locationText}>Praia Grande, Sao Paulo</Text>
                   </View>
                 </View>
@@ -131,7 +143,7 @@ export default function DashboardScreen() {
 
               <View style={styles.notificationBadge}>
                 <Pressable onPress={() => isAdmin && router.push('/admin')} hitSlop={8}>
-                  <Feather name={isAdmin ? 'shield' : 'bell'} size={18} color="#65b9d2" />
+                  <Feather name={isAdmin ? 'shield' : 'bell'} size={18} color={theme.accent} />
                 </Pressable>
                 {isAdmin ? <View style={styles.notificationDot} /> : null}
               </View>
@@ -156,14 +168,14 @@ export default function DashboardScreen() {
                   onPress={() =>
                     setSortMode((currentMode) => (currentMode === 'price-asc' ? 'default' : 'price-asc'))
                   }>
-                  <Feather name="arrow-up" size={16} color="#48697d" />
+                  <Feather name="arrow-up" size={16} color={theme.textSecondary} />
                 </Pressable>
                 <Pressable
                   style={[styles.sortButton, sortMode === 'price-desc' && styles.sortButtonActive]}
                   onPress={() =>
                     setSortMode((currentMode) => (currentMode === 'price-desc' ? 'default' : 'price-desc'))
                   }>
-                  <Feather name="arrow-down" size={16} color="#48697d" />
+                  <Feather name="arrow-down" size={16} color={theme.textSecondary} />
                 </Pressable>
                 <Pressable
                   style={[
@@ -218,220 +230,221 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#212121',
-  },
-  shell: {
-    flex: 1,
-    paddingTop: 8,
-  },
-  headerLabel: {
-    color: '#6c6c6c',
-    fontSize: 18,
-    marginLeft: 24,
-    marginBottom: 6,
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: '#f4f4f4',
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
-    marginHorizontal: 10,
-  },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 120,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  userBlock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#1878c9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: '#9ba6b1',
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#252525',
-    marginTop: -2,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  locationText: {
-    fontSize: 11,
-    color: '#c0c8d1',
-  },
-  notificationBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#e8eef2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#f25c5c',
-  },
-  searchBar: {
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#edf0f4',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    color: '#3d4650',
-    fontSize: 15,
-    paddingVertical: 0,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    color: '#141414',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  sortGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sortButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: '#dbe7ee',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sortButtonActive: {
-    backgroundColor: '#bcdcea',
-  },
-  sortWide: {
-    width: 48,
-  },
-  sortWideText: {
-    color: '#48697d',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  categoriesRow: {
-    paddingRight: 16,
-    marginBottom: 18,
-  },
-  categoryPill: {
-    minWidth: 84,
-    paddingHorizontal: 16,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ced5dc',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    backgroundColor: '#f5f5f5',
-  },
-  categoryPillActive: {
-    backgroundColor: '#16b7de',
-    borderColor: '#16b7de',
-  },
-  categoryText: {
-    color: '#c5c9ce',
-    fontSize: 15,
-  },
-  categoryTextActive: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 16,
-  },
-  emptyState: {
-    paddingVertical: 28,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    color: '#1f2b34',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  emptyText: {
-    color: '#72808c',
-    fontSize: 14,
-    textAlign: 'center',
-    maxWidth: 240,
-    lineHeight: 20,
-  },
-  card: {
-    width: '47%',
-    backgroundColor: '#d7e4ec',
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingTop: 16,
-    paddingBottom: 14,
-    minHeight: 168,
-  },
-  artworkWrap: {
-    height: 92,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    color: '#121212',
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  cardPrice: {
-    color: '#121212',
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.outerBackground,
+    },
+    shell: {
+      flex: 1,
+      paddingTop: 8,
+    },
+    headerLabel: {
+      color: theme.textMuted,
+      fontSize: 18,
+      marginLeft: 24,
+      marginBottom: 6,
+    },
+    panel: {
+      flex: 1,
+      backgroundColor: theme.panelBackground,
+      borderTopLeftRadius: 34,
+      borderTopRightRadius: 34,
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+      overflow: 'hidden',
+      marginHorizontal: 10,
+    },
+    scrollContent: {
+      paddingHorizontal: 18,
+      paddingTop: 18,
+      paddingBottom: 120,
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    userBlock: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    avatar: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: theme.accentStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    welcomeText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
+    userName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.textPrimary,
+      marginTop: -2,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 2,
+    },
+    locationText: {
+      fontSize: 11,
+      color: theme.textMuted,
+    },
+    notificationBadge: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.mutedSurface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    notificationDot: {
+      position: 'absolute',
+      top: 7,
+      right: 8,
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: '#f25c5c',
+    },
+    searchBar: {
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: theme.inputBackground,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: 8,
+      color: theme.textPrimary,
+      fontSize: 15,
+      paddingVertical: 0,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      color: theme.textPrimary,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    sortGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    sortButton: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      backgroundColor: theme.mutedSurface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sortButtonActive: {
+      backgroundColor: theme.accentSoft,
+    },
+    sortWide: {
+      width: 48,
+    },
+    sortWideText: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    categoriesRow: {
+      paddingRight: 16,
+      marginBottom: 18,
+    },
+    categoryPill: {
+      minWidth: 84,
+      paddingHorizontal: 16,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+      backgroundColor: theme.panelBackground,
+    },
+    categoryPillActive: {
+      backgroundColor: theme.accent,
+      borderColor: theme.accent,
+    },
+    categoryText: {
+      color: theme.textMuted,
+      fontSize: 15,
+    },
+    categoryTextActive: {
+      color: theme.mode === 'dark' ? theme.black : theme.white,
+      fontWeight: '600',
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      rowGap: 16,
+    },
+    emptyState: {
+      paddingVertical: 28,
+      alignItems: 'center',
+    },
+    emptyTitle: {
+      color: theme.textPrimary,
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 6,
+    },
+    emptyText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      textAlign: 'center',
+      maxWidth: 240,
+      lineHeight: 20,
+    },
+    card: {
+      width: '47%',
+      backgroundColor: theme.cardBackground,
+      borderRadius: 24,
+      paddingHorizontal: 12,
+      paddingTop: 16,
+      paddingBottom: 14,
+      minHeight: 168,
+    },
+    artworkWrap: {
+      height: 92,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+    },
+    cardTitle: {
+      color: theme.textPrimary,
+      fontSize: 15,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    cardPrice: {
+      color: theme.accent,
+      fontSize: 15,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+  });

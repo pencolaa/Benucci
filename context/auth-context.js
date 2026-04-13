@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
     isAdmin: false,
     userName: '',
     email: '',
+    password: '',
   });
 
   const login = ({ email, password }) => {
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
       isAdmin,
       userName: userName.charAt(0).toUpperCase() + userName.slice(1),
       email: normalizedEmail,
+      password: normalizedPassword,
     });
 
     return { ok: true, isAdmin };
@@ -49,7 +51,39 @@ export function AuthProvider({ children }) {
       isAdmin: false,
       userName: '',
       email: '',
+      password: '',
     });
+  };
+
+  const updateProfile = ({ userName, email, password }) => {
+    const nextName = String(userName).trim();
+    const nextEmail = String(email).trim().toLowerCase();
+    const nextPassword = String(password ?? session.password).trim();
+
+    if (!nextName) {
+      return { ok: false, error: 'Informe seu nome para atualizar o perfil.' };
+    }
+
+    if (!nextEmail || !nextEmail.includes('@')) {
+      return { ok: false, error: 'Informe um email valido para continuar.' };
+    }
+
+    if (!nextPassword || nextPassword.length < 4) {
+      return { ok: false, error: 'A senha precisa ter pelo menos 4 caracteres.' };
+    }
+
+    if (session.isAdmin && nextEmail !== adminCredentials.email) {
+      return { ok: false, error: 'O email do admin nao pode ser alterado por aqui.' };
+    }
+
+    setSession((current) => ({
+      ...current,
+      userName: nextName,
+      email: nextEmail,
+      password: nextPassword,
+    }));
+
+    return { ok: true };
   };
 
   const value = useMemo(
@@ -57,6 +91,7 @@ export function AuthProvider({ children }) {
       ...session,
       login,
       logout,
+      updateProfile,
     }),
     [session]
   );

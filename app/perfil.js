@@ -3,26 +3,30 @@ import { Feather } from '@expo/vector-icons';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import AppBottomNav from '../components/app-bottom-nav';
 import { useAuth } from '../context/auth-context';
+import { usePreferences } from '../context/preferences-context';
 
 const baseMenuItems = [
-  { icon: 'settings', label: 'Configuracoes' },
-  { icon: 'bell', label: 'Notificacoes' },
-  { icon: 'clock', label: 'Historico' },
-  { icon: 'lock', label: 'Politica e Privacidade' },
-  { icon: 'info', label: 'Termos e Condicoes' },
+  { icon: 'settings', label: 'Configuracoes', route: '/configuracoes' },
+  { icon: 'bell', label: 'Notificacoes', route: '/notificacoes' },
+  { icon: 'clock', label: 'Historico', route: '/historico' },
+  { icon: 'lock', label: 'Politica e Privacidade', route: '/privacidade' },
+  { icon: 'info', label: 'Termos e Condicoes', route: '/termos' },
 ];
 
 function MenuRow({ icon, label, onPress }) {
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
+
   return (
     <Pressable style={styles.menuRow} onPress={onPress}>
       <View style={styles.menuLeft}>
         <View style={styles.menuIconWrap}>
-          <Feather name={icon} size={16} color="#68bad3" />
+          <Feather name={icon} size={16} color={theme.accent} />
         </View>
         <Text style={styles.menuLabel}>{label}</Text>
       </View>
 
-      <Feather name="chevron-right" size={20} color="#39acd0" />
+      <Feather name="chevron-right" size={20} color={theme.accent} />
     </Pressable>
   );
 }
@@ -30,6 +34,8 @@ function MenuRow({ icon, label, onPress }) {
 export default function PerfilScreen() {
   const router = useRouter();
   const { userName, email, isAdmin, logout } = useAuth();
+  const { theme } = usePreferences();
+  const styles = createStyles(theme);
   const menuItems = [
     ...baseMenuItems,
     ...(isAdmin ? [{ icon: 'shield', label: 'Painel admin' }] : []),
@@ -43,7 +49,7 @@ export default function PerfilScreen() {
           <Text style={styles.title}>Meu Perfil</Text>
 
           <View style={styles.avatar}>
-            <Feather name="user" size={36} color="#ffffff" />
+            <Feather name="user" size={36} color={theme.white} />
           </View>
 
           <Text style={styles.name}>{userName || 'Cliente'}</Text>
@@ -60,6 +66,11 @@ export default function PerfilScreen() {
                 icon={item.icon}
                 label={item.label}
                 onPress={() => {
+                  if (item.route) {
+                    router.push(item.route);
+                    return;
+                  }
+
                   if (item.label === 'Painel admin') {
                     router.push('/admin');
                     return;
@@ -81,90 +92,91 @@ export default function PerfilScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#212121',
-    paddingHorizontal: 4,
-    paddingTop: 8,
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: '#f4f4f4',
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: 'hidden',
-  },
-  header: {
-    alignItems: 'center',
-    paddingTop: 38,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1c1c1c',
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: '#147bcc',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#171717',
-  },
-  email: {
-    fontSize: 10,
-    color: '#727272',
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: '#d2e4ee',
-    paddingHorizontal: 18,
-    paddingTop: 28,
-    paddingBottom: 110,
-  },
-  sectionTitle: {
-    fontSize: 26,
-    fontWeight: '400',
-    color: '#1b1b1b',
-    marginBottom: 18,
-  },
-  menuList: {
-    gap: 16,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  menuIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: '#eef6fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuLabel: {
-    fontSize: 14,
-    color: '#1e1e1e',
-    flexShrink: 1,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.outerBackground,
+      paddingHorizontal: 4,
+      paddingTop: 8,
+    },
+    panel: {
+      flex: 1,
+      backgroundColor: theme.panelBackground,
+      borderTopLeftRadius: 36,
+      borderTopRightRadius: 36,
+      borderBottomLeftRadius: 36,
+      borderBottomRightRadius: 36,
+      overflow: 'hidden',
+    },
+    header: {
+      alignItems: 'center',
+      paddingTop: 38,
+      paddingBottom: 24,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      marginBottom: 10,
+    },
+    avatar: {
+      width: 82,
+      height: 82,
+      borderRadius: 41,
+      backgroundColor: theme.accentStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    name: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    email: {
+      fontSize: 10,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
+    content: {
+      flex: 1,
+      backgroundColor: theme.panelAltBackground,
+      paddingHorizontal: 18,
+      paddingTop: 28,
+      paddingBottom: 110,
+    },
+    sectionTitle: {
+      fontSize: 26,
+      fontWeight: '400',
+      color: theme.textPrimary,
+      marginBottom: 18,
+    },
+    menuList: {
+      gap: 16,
+    },
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    menuLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    menuIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      backgroundColor: theme.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    menuLabel: {
+      fontSize: 14,
+      color: theme.textPrimary,
+      flexShrink: 1,
+    },
+  });
